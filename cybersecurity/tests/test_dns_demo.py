@@ -106,6 +106,24 @@ class DnsDemoTests(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertIn("System DNS lookup failed", stderr.getvalue())
 
+    def test_main_reports_invalid_hostname_encoding_without_dns_query(self):
+        stderr = io.StringIO()
+        encoding_error = UnicodeEncodeError(
+            "idna", "é" * 64, 0, 64, "label empty or too long"
+        )
+        with patch.object(
+            dns_demo.socket, "getaddrinfo", side_effect=encoding_error
+        ), patch.object(dns_demo, "resolve_record") as resolve_record, patch.object(
+            dns_demo.sys, "stderr", stderr
+        ):
+            status = dns_demo.main(["é" * 64 + ".example"])
+        self.assertEqual(status, 1)
+        self.assertEqual(
+            stderr.getvalue(), "Error: Invalid hostname: label empty or too long\n"
+        )
+        self.assertNotIn("Traceback", stderr.getvalue())
+        resolve_record.assert_not_called()
+
     def test_main_rejects_unsupported_record_type(self):
         with self.assertRaises(SystemExit) as result:
             dns_demo.main(["example.test", "--type", "PTR"])

@@ -18,6 +18,8 @@ def resolve_system_addresses(hostname: str) -> dict[str, list[str]]:
         )
     except socket.gaierror as exc:
         raise DnsDemoError(f"System DNS lookup failed: {exc}") from exc
+    except UnicodeEncodeError as exc:
+        raise DnsDemoError(f"Invalid hostname: {exc.reason}") from exc
 
     family_names = {socket.AF_INET: "IPv4", socket.AF_INET6: "IPv6"}
     for family, _, _, _, sockaddr in results:
